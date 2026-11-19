@@ -1,0 +1,54 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "enduo-fitatu-agent"
+version = "0.1.0"
+description = "Enduo Fitatu Agent: an unofficial agent for Enduo that sends the Fitatu food diary to Enduo"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = [
+  # Reads Fitatu: sign-in, the session file with its refreshed tokens, the day of the diary. Pinned: it follows
+  # a private API, and a new release is checked before it is taken.
+  "fitatu-api==0.6.0",
+  "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "mypy>=1.11",
+  "ruff>=0.6",
+  "types-requests>=2.32",
+]
+
+[project.scripts]
+enduo-fitatu = "enduo_fitatu.main:main"
+
+[project.urls]
+Homepage = "https://github.com/sklimaszewski/enduo-fitatu-agent"
+Issues = "https://github.com/sklimaszewski/enduo-fitatu-agent/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/enduo_fitatu"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 140
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+mypy_path = "src"
+packages = ["enduo_fitatu"]

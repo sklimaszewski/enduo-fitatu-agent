@@ -1,0 +1,21 @@
+# Enduo Fitatu Agent with Docker Compose. Copy .env.example to .env if you want to change anything, then:
+#
+#   docker compose up -d
+#   docker compose exec -it fitatu enduo-fitatu setup     # first run: Fitatu sign-in + Enduo
+#
+# No port is published: the container only connects out. `docker compose build` builds the image from this checkout
+# instead of pulling it from Docker Hub.
+services:
+  fitatu:
+    image: sklimaszewski/enduo-fitatu-agent:${FITATU_AGENT_TAG:-latest}
+    build: .
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      # Both sign-ins and the sync state: keep it, and back it up like a password file.
+      - fitatu-data:/data
+
+volumes:
+  fitatu-data:

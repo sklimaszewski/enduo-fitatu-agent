@@ -1,0 +1,51 @@
+# Lint, type check and tests on every push and pull request, and a smoke test of the image.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        # 3.11 is the oldest Python fitatu-api supports; the image runs 3.13.
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      # Everything comes from the hashed lock; the project is then built with what is installed, without an index.
+      - run: pip install --require-hashes -r requirements-dev.txt
+      - run: pip install --no-index --no-deps --no-build-isolation . && pip check
+      - run: ruff check src tests
+      - run: ruff format --check src tests
+      - run: mypy src/enduo_fitatu tests
+      - run: pytest -q
+
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Build
+        run: docker build -t enduo-fitatu-agent:ci .
+      - name: Smoke test
+        run: |
+          # It has to start, wait for its setup and count as healthy without any sign-in.
+          docker run -d --name smoke enduo-fitatu-agent:ci
+          sleep 10
+          docker logs smoke
+          docker exec smoke enduo-fitatu health
+          docker logs smoke 2>&1 | grep -q 'enduo-fitatu setup'
+          docker stop smoke
+          test "$(docker inspect -f '{{.State.ExitCode}}' smoke)" = 0
